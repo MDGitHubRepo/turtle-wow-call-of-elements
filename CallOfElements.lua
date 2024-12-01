@@ -139,7 +139,7 @@ function TotemicRecallTimerReset()
 	if ( TRstart > 0 and COE_TotemicRecallPreviousCDExpired) then
 
 		-- No more than one call is necessary to check if the cooldown is actually Totemic Recall
-		if (TRduration < 6 and COE_TotemicRecallTimerResetCount < 1) then
+		if (TRduration < 6 and COE_TotemicRecallTimerResetCount < 2) then
 			Chronos.schedule(.25, TotemicRecallTimerReset);
 			COE_TotemicRecallTimerResetCount = COE_TotemicRecallTimerResetCount + 1;
 
