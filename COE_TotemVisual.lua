@@ -1562,7 +1562,6 @@ end
 		associated totem has an active timer
 -------------------------------------------------------------------]]
 function COE_Totem:SetTimerText()
-
 	if( this.totem == COE.NoTotem ) then
 		return;
 	end;
@@ -1641,7 +1640,9 @@ function COE_Totem:SetTimerText()
 			-- if timer has just expired, deactivate it
 			-- if it isn't active anyway, the call doesn't hurt
 			-- -------------------------------------------------
-			COE_Totem:DeactivateTimer( this.totem );
+-- TODO: I'm removing this as it appears entirely unnecessary to be done in this method
+			--COE:DebugMessage("Calling DeactivateTimer with totem: ".. this.totem.SpellName);
+			--COE_Totem:DeactivateTimer( this.totem );
 
 			timertext:Hide();
 			overlaytex:Hide();

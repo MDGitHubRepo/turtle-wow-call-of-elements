@@ -63,7 +63,8 @@ function COE:Init()
 		COE.Initialized = true;
 
 		this:RegisterEvent( "VARIABLES_LOADED" );
-	
+		this:RegisterEvent("SPELLCAST_STOP");
+			
 		-- register shell command
 		-- -----------------------
 		SlashCmdList["COE"] = COEProcessShellCommand;
@@ -71,8 +72,25 @@ function COE:Init()
 		
 	end
 
+
 end
 
+--[[ ----------------------------------------------------------------
+	METHOD: COE:FindSpellId
+	
+	PURPOSE: Utility function that can provide spell ID from name. 
+	Run in client chat with '/script COE:FindSpellName("a_spell_name")'.
+-------------------------------------------------------------------]]
+function  COE:FindSpellId(spellNameTarget)
+	local spellName;
+	for i = 1, 1000 do
+		spellName = GetSpellName(i, BOOKTYPE_SPELL);
+		if (spellName == spellNameTarget) then
+			print(spellName .. "is id: " .. i);
+
+		end
+	end
+end
 
 --[[ ----------------------------------------------------------------
 	METHOD: COE:OnEvent
@@ -85,6 +103,54 @@ function COE:OnEvent( event )
 		-- fix saved variables if this update has to do so
 		-- ------------------------------------------------
 		COE:FixSavedVariables();
+
+	elseif ( event == "SPELLCAST_STOP"  ) then
+		COE_TotemicRecallTimerResetCount = 0;
+
+		TotemicRecallTimerReset();
+	end
+end
+
+--[[ ----------------------------------------------------------------
+	Totemic Recall Reset Logic
+
+	This is very janky. The return values from GetSpellCooldown for 
+	spell ID 35 (Totemic Recall) are very inconsistent. But if a
+	delay is introduced, then the next call seems valid. I suspect
+	this might break if something has a CD of 6 seconds.
+-------------------------------------------------------------------]]
+COE_TotemicRecallPreviousCDExpired = true;
+-- Using counter to keep track of calls to reset
+COE_TotemicRecallTimerResetCount = 0;
+
+-- Local function to change variable with Chronos scheduler
+function TotemicRecallEndCountdown()
+	COE_TotemicRecallPreviousCDExpired = true;
+end
+
+function TotemicRecallTimerReset()
+
+	-- Get totemic recall spell cooldown information
+	local TRstart, TRduration = GetSpellCooldown( COESTR_TOTEMICRECALLID, BOOKTYPE_SPELL );
+	COE:DebugMessage("Totemic Recall spell CD values: ".. TRstart ..", ".. TRduration);
+
+	-- The first GetSpellCooldown returns the wrong information and fires for any spell cast, regardless of spell ID
+	-- So this will set a quick timer to recall this method and get the right GetSpellCooldown info
+	if ( TRstart > 0 and COE_TotemicRecallPreviousCDExpired) then
+
+		-- No more than one call is necessary to check if the cooldown is actually Totemic Recall
+		if (TRduration < 6 and COE_TotemicRecallTimerResetCount < 1) then
+			Chronos.schedule(.25, TotemicRecallTimerReset);
+			COE_TotemicRecallTimerResetCount = COE_TotemicRecallTimerResetCount + 1;
+
+		elseif (TRduration == 6) then
+			COE_TotemicRecallPreviousCDExpired = false;
+			COE_TotemicRecallTimerResetCount = 0;
+			Chronos.schedule(6, TotemicRecallEndCountdown);
+			COE:DebugMessage("Totemic Recall initiating reset of timers.");
+			COE_Totem:ResetTimers();
+		end
+		
 	end
 end
 
@@ -107,7 +173,7 @@ end;
 -------------------------------------------------------------------]]
 function COE:DebugMessage( msg )
 	if( COE.DebugMode ) then
-		DEFAULT_CHAT_FRAME:AddMessage( "[COE] " .. msg, 0.5, 0.5, 0.5 );
+		DEFAULT_CHAT_FRAME:AddMessage( "[COE] " .. msg, 1, 0, 0 );
 	end
 end;
 

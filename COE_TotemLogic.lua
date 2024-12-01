@@ -37,19 +37,16 @@ function COE_Totem:Rescan()
 	
 	-- Reset all active totems
 	-- ------------------------
-	COE_Totem:DeactivateTimer( COE.ActiveTotems.Earth );
-	COE_Totem:DeactivateTimer( COE.ActiveTotems.Fire );
-	COE_Totem:DeactivateTimer( COE.ActiveTotems.Water );
-	COE_Totem:DeactivateTimer( COE.ActiveTotems.Air );
+	COE_Totem:ResetTimers();
+	
 	COE.ActiveTotems.Earth = nil;
 	COE.ActiveTotems.Fire = nil;
 	COE.ActiveTotems.Water = nil;
 	COE.ActiveTotems.Air = nil;
-	
+
 	COE_Totem:UpdateAllFrames();
 	COETotemFrame.Reconfigure = true;
 end
-
 
 --[[ ----------------------------------------------------------------
 	METHOD: COE_Totem:ThrowTotem
@@ -681,11 +678,13 @@ end
 		still active timer of the same element 
 -------------------------------------------------------------------]]
 function COE_Totem:ActivatePendingTotem( totem )
+	COE:DebugMessage("Method Executing: ActivatePendingTotem with totem parameter ".. totem.SpellName);
 	
 	-- deactivate still active totem of the same element
 	-- --------------------------------------------------
-	local active = COE.ActiveTotems[COE.TotemPending.Totem.Element]; 
-	if( active ) then
+	COE:DebugMessage("Method Executing: ActivatePendingTotem - identifying active totems of type".. COE.TotemPending.Totem.Element);
+	local active = COE.ActiveTotems[COE.TotemPending.Totem.Element];
+	if( active ) then		
 		COE_Totem:DeactivateTimer( active );
 	end
 
@@ -857,6 +856,7 @@ end
 	PURPOSE: Issues an expiration warning for the specified totem  
 -------------------------------------------------------------------]]
 function COESched_ExpirationWarning( timemark, totem )
+	COE:DebugMessage("Method Executing: COESched_ExpirationWarning with totem parameter ".. totem.SpellName);
 
 	if( COE_Config:GetSaved( COEOPT_ENABLETOTEMBAR ) == 1 and
 		COE_Config:GetSaved( COEOPT_ENABLETIMERS ) == 1 and 
@@ -901,6 +901,7 @@ end
 		a notification if the totem is destroyed  
 -------------------------------------------------------------------]]
 function COE_Totem:TotemDamage()
+	COE:DebugMessage("Method Executing: TotemDamage");
 
 	local num, regex, i;
 	for num, regex in COESTR_TOTEMDAMAGE do
@@ -949,6 +950,7 @@ end
 	PURPOSE: Resets all active timers to zero 
 -------------------------------------------------------------------]]
 function COE_Totem:ResetTimers()
+	COE:DebugMessage("Method Executing: COE_Totem:ResetTimers");
 
 	local k;
 	for k = 1, 4 do

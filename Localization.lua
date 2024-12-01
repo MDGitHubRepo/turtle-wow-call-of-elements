@@ -52,6 +52,12 @@ COESTR_MAXAMOUNT = "to (%d*)";
 COESTR_TRINKET = "^.*%[Enamored Water Spirit%].*$"; 
 
 
+-- Spell Names and IDs
+-- ----------------
+COESTR_TOTEMICRECALL = "Totemic Recall";
+COESTR_TOTEMICRECALLID = 35;
+
+
 -- Totem Advisor
 -- --------------
 COESTR_POISON = "Poison";
