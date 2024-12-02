@@ -3,5 +3,5 @@ Shaman totem addon for turtle wow. Based on https://github.com/laytya/CallOfElem
 
 To use the addon:
 * download repo or release
-* extract files to folder in turtle wow Interface/Addons folder path
-* rename folder to "CallOfElements"
+* extract folder named "turtle-wow-call-of-elements-xxxx" from zip to turtle wow Interface/Addons folder path
+* rename folder to "CallOfElements", make sure files are in CallOfElements folder
