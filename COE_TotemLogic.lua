@@ -958,8 +958,6 @@ function COE_Totem:ResetTimers()
 			COE_Totem:DeactivateTimer( COE.ActiveTotems[COE_Element[k]] );
 		end
 	end
-
-	COE:Message( COESTR_RESET );
 	
 end
 
