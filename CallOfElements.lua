@@ -96,6 +96,10 @@ end
 	PURPOSE: Handles frame events
 -------------------------------------------------------------------]]
 function COE:OnEvent(event)
+    if (COE.EventPrintMode) then
+        COE:DebugMessage("Event: " .. event);
+        if (arg1) then COE:DebugMessage("arg1: " .. arg1); end
+    end
 
     if (event == "VARIABLES_LOADED") then
         -- fix saved variables if this update has to do so
@@ -103,14 +107,16 @@ function COE:OnEvent(event)
         COE:FixSavedVariables();
 
     elseif (event == "CHAT_MSG_SPELL_SELF_BUFF") then
+        -- resolve Totemic Recall event
         if (string.find(arg1, "Mana from Totemic Recall")) then
             COE:DebugMessage("Totemic Recall initiating reset of timers.");
             COE_Totem:ResetTimers();
+
+            -- Resolve Totem cast event
+        elseif (string.find(arg1, "Totem")) then
+            local totem = COE_Totem:GetTotemFromText(arg1);
+            if (totem) then COE_Totem:ActivateTotem(totem); end
         end
-
-    elseif (COE.EventPrintMode) then
-        COE:DebugMessage(event);
-
     end
 end
 
@@ -190,9 +196,12 @@ function COEProcessShellCommand(msg)
     if (msg == "" or msg == "config") then
         COE:ToggleConfigFrame();
 
-    elseif (msg == "list") then
+    elseif (msg == "list" or msg == "help") then
         COE:DisplayShellCommands();
 
+    elseif (msg == "debug") then
+        COE["DebugMode"] = not COE.DebugMode;
+        COE:Message(tostring(COE.DebugMode));
     elseif (msg == "nextset") then
         COE_Totem:SwitchToNextSet();
 
@@ -255,6 +264,7 @@ function COE:DisplayShellCommands()
     COE:Message(COESHELL_MACRONOTE);
     COE:Message(COESHELL_THROWSET);
     COE:Message(COESHELL_ADVISED);
+    COE:Message(COESHELL_DEBUG);
 
 end
 

@@ -218,7 +218,7 @@ COEMODIFIER_NUMPAD_SHORT = "NP";
 -- ---------------
 COESHELL_INTRO = "Available shell commands for Call Of Elements:";
 COESHELL_CONFIG = "'/coe' or '/coe config' - Shows the configuration dialog";
-COESHELL_LIST = "'/coe list' - Shows this list";
+COESHELL_LIST = "'/coe list' or '/coe help' - Shows this list";
 COESHELL_NEXTSET =
     "'/coe nexset' - Switches to the next custom totem set or the default set";
 COESHELL_PRIORSET =
@@ -237,3 +237,5 @@ COESHELL_MACRONOTE =
     "The following commands only work as macros dragged to your action bars:";
 COESHELL_THROWSET = "'/coe throwset' - Throws the active totem set";
 COESHELL_ADVISED = "'/coe advised' - Throws the next advised totem";
+COESHELL_DEBUG =
+"'/coe debug' - Toggles debug message printing (disable by default)";

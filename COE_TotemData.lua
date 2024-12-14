@@ -47,6 +47,12 @@ COE.TotemsAvailable["Air"] = 0;
 -------------------------------------------------------------------]]
 COE["ActiveTotems"] = {Earth = nil, Fire = nil, Water = nil, Air = nil};
 COE["TotemPending"] = {Totem = nil, UseRank = 0, Timeout = 0.75};
+COE["PendingTotems"] = {
+    Earth = {Totem = nil, Rank = 0, TimeoutStartMS = 0},
+    Fire = {Totem = nil, Rank = 0, TimeoutStartMS = 0},
+    Water = {Totem = nil, Rank = 0, TimeoutStartMS = 0},
+    Air = {Totem = nil, Rank = 0, TimeoutStartMS = 0}
+};
 
 --[[ ----------------------------------------------------------------
 	COE.CleansingTotems stores pointers to the buttons and totems

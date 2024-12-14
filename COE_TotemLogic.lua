@@ -49,7 +49,8 @@ end
 	PURPOSE: Throws the totem with the specified named id
 -------------------------------------------------------------------]]
 function COE_Totem:ThrowTotem(element, id)
-
+    COE:DebugMessage(
+        "COE_Totem:ThrowTotem element and id: " .. element .. " " .. id);
     if (not COE.Initialized) then return; end
 
     -- get associated button
@@ -57,6 +58,7 @@ function COE_Totem:ThrowTotem(element, id)
     local button = getglobal("COETotem" .. element .. id);
     if (button == nil) then
         COE:Message("Invalid Totem");
+
         return;
     end
 
@@ -538,6 +540,7 @@ end
 		yet thrown
 -------------------------------------------------------------------]]
 function COE_Totem:ThrowSet()
+    COE:DebugMessage("Method Executing: ThrowSet");
 
     if (COE_Config:GetSaved(COEOPT_ENABLESETS) == 1) then
 
@@ -545,14 +548,19 @@ function COE_Totem:ThrowSet()
         -- check which totem to throw
         -- =======================================================================
         local activeset = COE_Config:GetSaved(COEOPT_ACTIVESET);
+        COE:DebugMessage("ThrowSet activeset value: " .. activeset);
 
-        local k;
         for k = 1, 4 do
+            COE:DebugMessage("ThrowSet k value: " .. k);
 
             local element = COE:LocalizedElement(
                                 COE.TotemSets[activeset].CastOrder[k]);
+            COE:DebugMessage("ThrowSet element value: " .. element);
+
             local totem = COE.TotemSets[activeset][element];
 
+            COE:DebugMessage("ThrowSet COE.SetCycle[element] value: " ..
+                                 tostring(COE.SetCycle[element]));
             if (COE.SetCycle[element] == false and totem) then
 
                 if (totem.isTrinket) then
@@ -570,15 +578,24 @@ function COE_Totem:ThrowSet()
                     end
 
                 else
+
+                    COE:DebugMessage("ThrowSet casting totem: " .. element);
                     -- first check if the totem is already usable
                     -- -------------------------------------------
                     local start, duration = GetSpellCooldown(
                                                 totem.Ranks[totem.MaxRank]
                                                     .SpellID, BOOKTYPE_SPELL);
+                    COE:DebugMessage("ThrowSet spell cooldown duration: " ..
+                                         duration);
 
                     if (start == 0 and duration == 0) then
+
+                        COE:DebugMessage(
+                            "ThrowSet casting spell: " ..
+                                COE.TotemSets[activeset][element].SpellName);
                         CastSpellByName(COE.TotemSets[activeset][element]
                                             .SpellName);
+                        -- COE_Totem:SetPendingTotem(totem, totem.MaxRank);
                         return;
                     end
                 end
@@ -611,29 +628,38 @@ end
 	PURPOSE: Sets up or clears a pending totem
 		The pending totem's timer is activated on the next
 		successful SPELLCAST_STOP or removed if it times out first
+
+	PURPOSE: Sets up or clears a pending totem. The pending totem's
+		timer is activated when the spell is identified as cast. If
+		the spell is not identified as cast within 1 seconds, then
+		the pending status is removed.
 -------------------------------------------------------------------]]
 function COE_Totem:SetPendingTotem(totem, rank)
+    COE:DebugMessage("Method Executing: SetPendingTotem");
 
     if (totem) then
-        COE:DebugMessage("Setting pending totem: " .. totem.SpellName ..
-                             " with rank: " .. rank);
-        COE.TotemPending.Totem = totem;
-        COE.TotemPending.UseRank = rank;
 
-        -- get the current lag
+        -- Set PendingTotems for the given totem element type
+        COE:DebugMessage("SetPendingTotem PendingTotems being set: " ..
+                             totem.SpellName .. " with rank: " .. rank);
+        COE.PendingTotems[totem.Element].Totem = totem;
+        COE.PendingTotems[totem.Element].Rank = rank;
+        -- COE.PendingTotems[totem.Element].TimeoutStartMS = GetTime();
+
+        -- get the current lag - Not used but saving if needed
         -- --------------------
-        local _, _, lag = GetNetStats();
-        local timeout = lag / 1000 + COE.TotemPending.Timeout;
+        -- local _, _, lag = GetNetStats();
+        -- local timeout = lag / 1000 + COE.TotemPending.Timeout;
+        local timeoutSec = 1;
 
         -- use lag + 0.5 seconds as pending timeout
         -- -----------------------------------------
-        COE:DebugMessage("Setting pending timeout to: " .. timeout .. " msec");
+        COE:DebugMessage("SetPendingTotem Setting pending timeout to: " ..
+                             timeoutSec .. " seconds");
 
-        Chronos.scheduleByName("COE_Pending", timeout,
-                               COESched_CheckPendingTotem);
-    else
-        COE.TotemPending.Totem = nil;
-        COE.TotemPending.UseRank = 0;
+        Chronos.scheduleByName("COE_Pending", timeoutSec,
+                               COESched_CheckPendingTotem, totem.Element);
+
     end
 
 end
@@ -642,20 +668,160 @@ end
 	METHOD: COESched_CheckPendingTotem
 
 	PURPOSE: Clears the pending totem if it is still active
--------------------------------------------------------------------]]
-function COESched_CheckPendingTotem()
 
-    -- if there is still a pending totem it has timed out
-    -- ---------------------------------------------------
-    if (COE.TotemPending.Totem) then
-        COE:DebugMessage("Pending totem has timed out: " ..
-                             COE.TotemPending.Totem.SpellName);
-        COE_Totem:SetPendingTotem(nil);
+	PURPOSE: Clears the pending totem if it is still pending.
+-------------------------------------------------------------------]]
+function COESched_CheckPendingTotem(element)
+    COE:DebugMessage("Executing Method: COESched_CheckPendingTotem");
+
+    if (element) then
+        COE:DebugMessage("COESched_CheckPendingTotem for element: " .. element);
+
+        COE_Totem:ClearPendingTotem(COE.PendingTotems[element]);
     end
 
 end
 
 --[[ ----------------------------------------------------------------
+	METHOD: ClearPendingTotem
+
+	PURPOSE: Clears the pending totem.
+-------------------------------------------------------------------]]
+function COE_Totem:ClearPendingTotem(pendingTotem)
+    COE:DebugMessage("Executing Method: ClearPendingTotem");
+
+    if (pendingTotem) then
+        pendingTotem.Totem = nil;
+        pendingTotem.Rank = nil;
+    end
+end
+
+--[[ ----------------------------------------------------------------
+	METHOD: COE_Totem:GetTotemFromText
+
+	PURPOSE: Identifies a totem from the text value passed in. Can
+	return a nil totem.
+-------------------------------------------------------------------]]
+function COE_Totem:GetTotemFromText(text)
+    local totem;
+    COE:DebugMessage("GetTotemFromText for text value: " .. text);
+
+    -- find the totem
+    for k = 1, COE.TotemCount do
+        if (string.find(text, COE.TotemData[k].SpellName)) then
+            -- use existing totem object
+            -- --------------------------
+            totem = COE.TotemData[k];
+
+            COE:DebugMessage("GetTotemFromText found totem: " .. totem.SpellName);
+            break
+        end
+    end
+
+    return totem;
+
+end
+
+--[[ ----------------------------------------------------------------
+	METHOD: COE_Totem:ActivateTotem
+
+	PURPOSE: Activates the totem timer and deactivates a
+		still active timer of the same element
+-------------------------------------------------------------------]]
+function COE_Totem:ActivateTotem(totem)
+    COE:DebugMessage("Method Executing: ActivateTotem with totem parameter " ..
+                         totem.SpellName);
+
+    local pendingTotemObj = COE.PendingTotems[totem.Element];
+
+    if (pendingTotemObj and pendingTotemObj.Totem) then
+        COE:DebugMessage("ActivateTotem identified pending totem : " ..
+                             pendingTotemObj.Totem.SpellName);
+
+        -- deactivate still active totem of the same element
+        -- --------------------------------------------------
+        local active = COE.ActiveTotems[totem.Element];
+        if (active) then COE_Totem:DeactivateTimer(active); end
+
+        local pendingTotem = pendingTotemObj.Totem;
+        local pendingTotemRank = pendingTotemObj.Rank;
+
+        -- activate timer
+        -- ---------------
+        Chronos.startTimer("COE" .. totem.SpellName);
+        totem.CurDuration = pendingTotem.Ranks[pendingTotemRank].Duration;
+        totem.CurHealth = pendingTotem.Ranks[pendingTotemRank].Health;
+
+        -- activate cooldown timer if this totem has a cooldown
+        -- -----------------------------------------------------
+        if (pendingTotem.Ranks[pendingTotemRank].Cooldown > 0) then
+            totem.CurCooldown = pendingTotem.Ranks[pendingTotemRank].Cooldown;
+            Chronos.startTimer("COECooldown" .. totem.SpellName);
+            Chronos.scheduleByName("COECooldownSwitch" .. totem.SpellName,
+                                   totem.CurCooldown, COESched_CooldownEnd,
+                                   totem);
+        end
+
+        -- activate warning timers
+        -- ------------------------
+        if (totem.CurDuration >= 10) then
+            Chronos.scheduleByName("COEWarn10" .. totem.SpellName,
+                                   totem.CurDuration - 10,
+                                   COESched_ExpirationWarning, 10, totem);
+        end
+        Chronos.scheduleByName("COEWarn5" .. totem.SpellName,
+                               totem.CurDuration - 5,
+                               COESched_ExpirationWarning, 5, totem);
+        Chronos.scheduleByName("COEWarn0" .. totem.SpellName, totem.CurDuration,
+                               COESched_ExpirationWarning, 0, totem);
+
+        -- mark totem as active
+        -- ---------------------
+        COE.ActiveTotems[pendingTotem.Element] = totem;
+        totem.isActive = true;
+
+        -- set totem in timer frame
+        -- -------------------------
+        if (COE_Config:GetSaved(COEOPT_TIMERFRAME) == 1) then
+            getglobal("COETimer" .. pendingTotem.Element).totem = totem;
+            COETimerFrame:Show();
+        end
+
+        -- mark totem as thrown if in current set
+        -- ---------------------------------------
+        local activeset = COE_Config:GetSaved(COEOPT_ACTIVESET);
+
+        if (COE.TotemSets[activeset][totem.Element] and
+            COE.TotemSets[activeset][totem.Element].SpellName == totem.SpellName) then
+
+            COE:DebugMessage("ActivateTotem Element " .. totem.Element ..
+                                 " in current cycle: SET");
+            COE.SetCycle[totem.Element] = true;
+        end
+
+        -- clear pending totem
+        -- --------------------
+        COE_Totem:ClearPendingTotem(pendingTotemObj);
+
+        -- if in timers only mode, reconfigure the totem bar
+        -- --------------------------------------------------
+        if (COE_Config:GetSaved(COEOPT_DISPLAYMODE) == COEMODE_TIMERSONLY) then
+            COE_Totem:Invalidate(getglobal("COE" .. totem.Element .. "Frame"),
+                                 true, true, true);
+            COETotemFrame.Reconfigure = true;
+        else
+            -- otherwise just invalidate the dynamic buttons
+            -- ----------------------------------------------
+            COE_Totem:Invalidate(getglobal("COE" .. totem.Element .. "Frame"),
+                                 false, false, true);
+        end
+
+    end
+
+end
+
+--[[ ----------------------------------------------------------------
+	DEPRECATED: Use ActivateTotem
 	METHOD: COE_Totem:ActivatePendingTotem
 
 	PURPOSE: Activates the pending totem timer and deactivates a
@@ -669,7 +835,7 @@ function COE_Totem:ActivatePendingTotem(totem)
     -- deactivate still active totem of the same element
     -- --------------------------------------------------
     COE:DebugMessage(
-        "Method Executing: ActivatePendingTotem - identifying active totems of type" ..
+        "ActivatePendingTotem - identifying active totems of type" ..
             COE.TotemPending.Totem.Element);
     local active = COE.ActiveTotems[COE.TotemPending.Totem.Element];
     if (active) then COE_Totem:DeactivateTimer(active); end
@@ -783,7 +949,7 @@ function COE_Totem:DeactivateTimer(totem)
         if (COE.TotemSets[activeset][totem.Element] and
             COE.TotemSets[activeset][totem.Element].SpellName == totem.SpellName) then
 
-            COE:DebugMessage("Element " .. totem.Element ..
+            COE:DebugMessage("DeactivateTimer Element " .. totem.Element ..
                                  " in current cycle: UNSET");
             COE.SetCycle[totem.Element] = false;
         end
@@ -975,6 +1141,7 @@ end
 		original function afterwards
 -------------------------------------------------------------------]]
 function COE_Totem:SetupTimerHooks()
+    COE:DebugMessage("Method Executing: SetupTimerHooks");
 
     COE_Totem.TimerHooks["UseAction"] = UseAction;
     UseAction = function(id, book, onself)
@@ -1009,7 +1176,7 @@ end
 		a totem
 -------------------------------------------------------------------]]
 function COE_Totem:HookUseAction(id, book)
-
+    COE:DebugMessage("Method Executing: HookUseAction");
     -- use only when timers are enabled
     -- ---------------------------------
     if (COE_Config:GetSaved(COEOPT_ENABLETIMERS) == 0) then return; end
@@ -1074,6 +1241,7 @@ end
 		a totem
 -------------------------------------------------------------------]]
 function COE_Totem:HookCastSpell(id, book)
+    COE:DebugMessage("Method Executing: HookCastSpell");
 
     -- use only when timers are enabled
     -- ---------------------------------
@@ -1107,6 +1275,7 @@ end
 		a totem
 -------------------------------------------------------------------]]
 function COE_Totem:HookCastSpellByName(SpellName)
+    COE:DebugMessage("Method Executing: HookCastSpellByName");
 
     -- use only when timers are enabled
     -- ---------------------------------
@@ -1149,6 +1318,7 @@ end
 		a totem
 -------------------------------------------------------------------]]
 function COE_Totem:HookUseInventoryItem(slotid)
+    COE:DebugMessage("Method Executing: HookUseInventoryItem");
 
     -- use only when timers are enabled
     -- ---------------------------------
