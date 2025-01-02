@@ -194,7 +194,7 @@ function COE:ScanTotems()
 
         -- is this a totem?
         -- -----------------
-        if (SpellName ~= "Totemic Recall" and
+        if (SpellName ~= "Totemic Recall" and SpellName ~= "Totemic Slam" and
             string.find(SpellName, COESTR_SCANTOTEMS) ~= nil) then
 
             local newtotem = true;
